@@ -1,0 +1,21 @@
+{
+  "ai_enabled": {
+    "description": "启用 AI 自动判断发送烂梗",
+    "type": "bool",
+    "hint": "开启后 Bot 会在合适时机用 AI 判断是否自动丢梗",
+    "default": false
+  },
+  "ai_provider_id": {
+    "description": "[核心模型设置] 用于判断是否发送烂梗的 LLM 提供商",
+    "type": "string",
+    "_special": "select_provider",
+    "hint": "推荐使用低价模型（如 DeepSeek）以降低成本。每次判断仅消耗约 100 token。",
+    "default": ""
+  },
+  "ai_cooldown": {
+    "description": "AI 判断冷却时间（秒）",
+    "type": "int",
+    "hint": "两次 AI 判断之间的最小间隔，建议 180-600",
+    "default": 300
+  }
+}
