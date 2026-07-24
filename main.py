@@ -14,7 +14,7 @@ class RandomGeng(Star):
         self.geng_api = "https://hguofichp.cn:10086/machine/getRandOne"
         self.last_ai_check = 0
 
-    # ========== /烂梗 ==========
+    # ========== /烂梗 (斜杠命令) ==========
 
     @filter.command("烂梗")
     async def random_geng(self, event: AstrMessageEvent):
@@ -22,7 +22,39 @@ class RandomGeng(Star):
         if barrage:
             yield event.plain_result(barrage)
         else:
-            yield event.plain_result("烂梗获取失败，玩机器正在咬打火机")
+            yield event.plain_result("烂梗获取失败")
+
+    # ========== 自然语言正则匹配 ==========
+
+    @filter.regex(r"来[条个]?[烂乱随]梗")
+    async def lai_geng(self, event: AstrMessageEvent):
+        barrage = await self._fetch_geng()
+        if barrage:
+            yield event.plain_result(barrage)
+
+    @filter.regex(r"给[我俺].*[烂乱随]梗")
+    async def gei_geng(self, event: AstrMessageEvent):
+        barrage = await self._fetch_geng()
+        if barrage:
+            yield event.plain_result(barrage)
+
+    @filter.regex(r"整[条个]?[烂乱随]梗")
+    async def zheng_geng(self, event: AstrMessageEvent):
+        barrage = await self._fetch_geng()
+        if barrage:
+            yield event.plain_result(barrage)
+
+    @filter.regex(r"[发讲说搞][条个]?[烂乱随]梗")
+    async def fa_geng(self, event: AstrMessageEvent):
+        barrage = await self._fetch_geng()
+        if barrage:
+            yield event.plain_result(barrage)
+
+    @filter.regex(r"来点[烂乱随]梗")
+    async def laidian_geng(self, event: AstrMessageEvent):
+        barrage = await self._fetch_geng()
+        if barrage:
+            yield event.plain_result(barrage)
 
     # ========== /烂梗榜 ==========
 
@@ -35,12 +67,10 @@ class RandomGeng(Star):
                     params={"pageNum": 1, "pageSize": 5}
                 )
                 data = resp.json()
-
             if data.get("code") == 200 and data.get("data"):
                 geng_list = data["data"].get("list", [])[:5]
                 if not geng_list:
                     geng_list = data["data"] if isinstance(data["data"], list) else []
-
                 if geng_list:
                     lines = []
                     for i, g in enumerate(geng_list, 1):
@@ -49,15 +79,12 @@ class RandomGeng(Star):
                             lines.append(f"{i}. {barrage}")
                     if lines:
                         yield event.plain_result("\n".join(lines))
-                    else:
-                        yield event.plain_result("热门榜暂无数据")
                 else:
                     yield event.plain_result("热门榜暂无数据")
             else:
                 yield event.plain_result("热门烂梗获取失败")
         except Exception as e:
             logger.error(f"热门烂梗插件出错: {e}")
-            yield event.plain_result("热门烂梗获取失败")
 
     # ========== /烂梗ai ==========
 
@@ -70,18 +97,13 @@ class RandomGeng(Star):
             status = "开启" if enabled else "关闭"
             pid = self.config.get("ai_provider_id", "")
             pname = self._get_provider_display_name(pid) if pid else "未设置"
-            yield event.plain_result(
-                f"🤖 AI自动烂梗：{status}\n"
-                f"⚙ 判断模型：{pname} | 冷却：{self.config.get('ai_cooldown', 300)}秒\n"
-                f"用法：/烂梗ai on | off | status\n"
-                f"提示：在 WebUI 插件设置中选择 LLM 提供商"
-            )
+            yield event.plain_result(f"🤖 AI自动烂梗：{status}\n⚙ {pname} | 冷却：{self.config.get('ai_cooldown', 300)}秒")
             return
 
         cmd = parts[1].lower()
         if cmd == "on":
             if not self.config.get("ai_provider_id", ""):
-                yield event.plain_result("⚠️ 请先在 WebUI 插件设置中选择一个 LLM 提供商，再开启 AI 模式")
+                yield event.plain_result("⚠️ 请先在 WebUI 插件设置中选择一个 LLM 提供商")
                 return
             self.config["ai_enabled"] = True
             self.last_ai_check = 0
@@ -97,11 +119,11 @@ class RandomGeng(Star):
             left = int(cooldown - (time.time() - self.last_ai_check))
             cd = f"冷却中（{left}秒后下次检查）" if left > 0 and enabled else "就绪"
             status = "开启" if enabled else "关闭"
-            yield event.plain_result(f"🤖 AI自动烂梗：{status}\n⚙ 判断模型：{pname} | 冷却：{cooldown}秒\n⏱ {cd}")
+            yield event.plain_result(f"🤖 AI自动烂梗：{status}\n⚙ {pname} | 冷却：{cooldown}秒\n⏱ {cd}")
         else:
-            yield event.plain_result(f"未知参数: {cmd}，请用 on / off / status")
+            yield event.plain_result(f"未知参数: {cmd}")
 
-    # ========== AI 自动判断钩子 ==========
+    # ========== AI 自动判断 ==========
 
     @filter.on_decorating_result(priority=200)
     async def ai_judge_meme(self, event: AstrMessageEvent):
@@ -128,11 +150,11 @@ class RandomGeng(Star):
                 if barrage:
                     chain = event.get_result().chain
                     chain.insert(0, Plain(barrage))
-                    logger.info("AI 判断通过，自动发送烂梗")
+                    logger.info("[烂梗AI] ✅ 已插入烂梗")
         except Exception as e:
-            logger.warning(f"AI烂梗判断异常（不影响回复）: {e}")
+            logger.warning(f"[烂梗AI] 异常: {e}")
 
-    # ========== 工具方法 ==========
+    # ========== 工具 ==========
 
     async def _fetch_geng(self) -> str:
         try:
@@ -149,75 +171,70 @@ class RandomGeng(Star):
         provider = self._get_selected_provider()
         if not provider:
             return False
-
         try:
             prompt = (
-                "你是梗警察。根据群聊消息判断：现在是否适合发一条网络烂梗/抽象话活跃气氛？\n"
+                "你是梗警察。根据群聊消息判断：现在是否适合发一条网络烂梗活跃气氛？\n"
                 "适合：群友在玩梗、开玩笑、闲聊、讨论主播/电竞、气氛轻松。\n"
                 "不适合：认真讨论、求助、吵架、严肃话题。\n"
-                "只回复 YES 或 NO。\n\n"
-                f"群聊消息：{user_message}\n\n"
-                "现在适合发烂梗吗？"
+                "只回复 YES 或 NO。"
+                f"\n\n群聊消息：{user_message}\n\n现在适合发烂梗吗？"
             )
-
             if hasattr(provider, 'text_chat'):
-                resp = await asyncio.wait_for(
-                    provider.text_chat(prompt),
-                    timeout=10
-                )
-                text = resp if isinstance(resp, str) else str(resp)
-                return "YES" in text.strip().upper()
-
+                resp = await asyncio.wait_for(provider.text_chat(prompt), timeout=10)
+                text = self._extract_text(resp)
+                return "YES" in text.strip().upper() if text else False
         except Exception as e:
-            logger.warning(f"AI判断失败: {e}")
+            logger.warning(f"[烂梗AI] 失败: {e}")
         return False
 
+    def _extract_text(self, response_obj) -> str:
+        if isinstance(response_obj, str):
+            return response_obj.strip()
+        if response_obj is None:
+            return ""
+        for attr in ('completion_text', 'text', 'content'):
+            if hasattr(response_obj, attr):
+                val = getattr(response_obj, attr)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+        if hasattr(response_obj, 'result_chain'):
+            parts = []
+            for c in response_obj.result_chain:
+                if hasattr(c, 'text') and c.text:
+                    parts.append(c.text)
+                elif isinstance(c, str):
+                    parts.append(c)
+            if parts:
+                return ' '.join(parts).strip()
+        return str(response_obj).strip()
+
     def _get_selected_provider(self):
-        """获取用户在设置中选择的提供商"""
         try:
             provider_id = self.config.get("ai_provider_id", "").strip()
             if not provider_id:
                 return None
-
             providers = self.context.get_all_providers()
+            search = provider_id.split('/')[-1] if '/' in provider_id else provider_id
             for p in providers:
-                # AstrBot 的 provider 对象通常有 __class__.__name__ 或 name 属性
-                # select_provider 返回的 ID 可能是类名或配置键名
-                cls_name = p.__class__.__name__
-                p_name = getattr(p, 'name', '') or ''
-                p_id = getattr(p, 'id', '') or ''
-                cfg_id = getattr(p, 'config_id', '') or ''
-
-                ids = [cls_name, p_name, p_id, cfg_id]
-                if provider_id in ids:
-                    return p
-
-            # 模糊匹配
-            for p in providers:
-                cls_name = p.__class__.__name__
-                if provider_id.lower() in cls_name.lower():
-                    return p
-
+                cls = p.__class__.__name__
+                name = getattr(p, 'name', '') or ''
+                model = getattr(p, 'model_name', '') or getattr(p, 'model', '') or ''
+                ptype = getattr(p, 'type', '') or ''
+                for v in [cls, name, model, ptype]:
+                    if search.lower() in v.lower():
+                        return p
             return None
         except Exception as e:
-            logger.warning(f"获取提供商失败: {e}")
+            logger.error(f"获取提供商失败: {e}")
             return None
 
     def _get_provider_display_name(self, provider_id: str) -> str:
-        """获取提供商的显示名称"""
-        try:
-            providers = self.context.get_all_providers()
-            for p in providers:
-                cls_name = p.__class__.__name__
-                if provider_id in cls_name:
-                    # 尝试获取模型名
-                    model = getattr(p, 'model_name', '') or getattr(p, 'model', '') or ''
-                    if model:
-                        return f"{cls_name} ({model})"
-                    return cls_name
-            return provider_id
-        except:
-            return provider_id
+        p = self._get_selected_provider()
+        if p:
+            cls = p.__class__.__name__
+            model = getattr(p, 'model_name', '') or getattr(p, 'model', '') or ''
+            return f"{cls}({model})" if model else cls
+        return provider_id
 
     async def terminate(self):
         pass
