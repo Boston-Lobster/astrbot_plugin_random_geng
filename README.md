@@ -2,39 +2,27 @@
 
 从 [sb6657.cn](https://sb6657.cn) 随机抓取玩机器烂梗的 AstrBot 插件。
 
-## 命令
+## 触发方式
 
-| 命令 | 功能 |
+| 方式 | 示例 |
 |------|------|
-| /烂梗 | 随机获取一条烂梗 |
-| /烂梗榜 | 热门烂梗 TOP5 |
-| /烂梗ai on/off/status | AI 自动判断模式开关 |
+| 斜杠命令 | `/烂梗` `/烂梗榜` |
+| 自然语言 | `来条烂梗` `整个烂梗` `发条烂梗` `来点烂梗` |
+| AI 自动 | 开启后 Bot 回复时自动判断是否丢梗 |
 
 ## AI 自动判断
 
-开启后，插件会在冷却时间过后，调用 AstrBot 已配置的 LLM 提供商判断当前聊天氛围是否适合发送烂梗。
-
-在 WebUI 插件设置中：
-- 选择用于判断的 LLM 提供商（推荐低价模型，如 DeepSeek）
-- 设置冷却时间（默认 300 秒）
-
-每次判断仅消耗约 100 token，5 分钟最多调用一次。
-
-## 数据源
-
-API: `https://hguofichp.cn:10086/machine/getRandOne`（无需鉴权）
+1. 在 WebUI 插件设置中选择 LLM 提供商（推荐低价模型）
+2. `/烂梗ai on` 开启
+3. Bot 每次回复前用 AI 判断氛围是否适合（YES/NO），~100 token/次
+4. 可配置冷却时间（默认 300 秒）
 
 ## 安装
 
-1. 将插件文件夹放入 AstrBot 的 `data/plugins/` 目录
-2. 确保 `httpx` 已安装：`pip install httpx`
-3. 重启 AstrBot 或从 WebUI 重载插件
-4. 在 WebUI 插件管理 → 随机烂梗 → 设置 中配置提供商
-
-## 依赖
-
-- `httpx` — HTTP 请求
+1. 放入 AstrBot `data/plugins/` 目录
+2. `pip install httpx`
+3. 重启 AstrBot，在 WebUI 设置中选择提供商
 
 ## 版本
 
-v1.2.0 — 使用 AstrBot 内置提供商下拉选择（`_special: select_provider`）
+v1.3.0 — 自然语言 regex + AI 自动判断 + select_provider
