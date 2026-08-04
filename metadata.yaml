@@ -2,7 +2,7 @@ name: astrbot_plugin_random_geng
 display_name: 随机烂梗
 desc: 从 sb6657.cn 随机抓取玩机器烂梗，支持 /烂梗 /烂梗榜 和 AI 自动判断发送（可选已配置的 LLM 提供商）
 author: Alva
-version: 1.3.0
+version: 1.4.0
 repo: ""
 support_platforms:
   - aiocqhttp
