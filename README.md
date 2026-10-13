@@ -23,7 +23,15 @@
 2. `pip install httpx`
 3. 重启 AstrBot，在 WebUI 设置中选择提供商
 
+也可从 [GitHub Release](https://github.com/Boston-Lobster/astrbot_plugin_random_geng/releases) 下载源码包，解压到插件目录；SHA256SUMS 用于校验下载文件。升级前保留 WebUI 中已有插件设置。
+
+## 验证和发布
+
+`python -m unittest discover -s tests -v` 运行无网络测试。默认分支通过 GitHub Actions 测试和版本校验后自动发布新版本 Release；已有标签保持原指向。版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 版本
 
+v1.5.0 — 修复 AI 命令读取消息链和模型提供商选择；恢复 HTTPS 证书校验，完善 API 响应校验
 v1.4.0 — AI 判断改为严格模式（默认拒绝，三条条件同时满足才触发），冷却时间可调
 v1.3.0 — 自然语言 regex + AI 自动判断 + select_provider
+

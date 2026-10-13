@@ -61,21 +61,27 @@ class RandomGeng(Star):
     @filter.command("烂梗榜")
     async def hot_geng(self, event: AstrMessageEvent):
         try:
-            async with httpx.AsyncClient(verify=False, timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(
                     "https://hguofichp.cn:10086/machine/sortAllBarrage",
                     params={"pageNum": 1, "pageSize": 5}
                 )
+                resp.raise_for_status()
                 data = resp.json()
-            if data.get("code") == 200 and data.get("data"):
-                geng_list = data["data"].get("list", [])[:5]
-                if not geng_list:
-                    geng_list = data["data"] if isinstance(data["data"], list) else []
+            if isinstance(data, dict) and data.get("code") == 200:
+                payload = data.get("data")
+                if isinstance(payload, dict):
+                    geng_list = payload.get("list", [])
+                elif isinstance(payload, list):
+                    geng_list = payload
+                else:
+                    geng_list = []
+                geng_list = geng_list[:5] if isinstance(geng_list, list) else []
                 if geng_list:
                     lines = []
                     for i, g in enumerate(geng_list, 1):
-                        barrage = g.get("barrage", "")
-                        if barrage:
+                        barrage = g.get("barrage", "") if isinstance(g, dict) else ""
+                        if isinstance(barrage, str) and barrage:
                             lines.append(f"{i}. {barrage}")
                     if lines:
                         yield event.plain_result("\n".join(lines))
@@ -85,12 +91,13 @@ class RandomGeng(Star):
                 yield event.plain_result("热门烂梗获取失败")
         except Exception as e:
             logger.error(f"热门烂梗插件出错: {e}")
+            yield event.plain_result("热门烂梗获取失败")
 
     # ========== /烂梗ai ==========
 
     @filter.command("烂梗ai")
     async def toggle_ai(self, event: AstrMessageEvent):
-        msg = event.message_obj.message.strip()
+        msg = self._get_message_text(event).strip()
         parts = msg.split()
         if len(parts) < 2:
             enabled = self.config.get("ai_enabled", False)
@@ -138,7 +145,7 @@ class RandomGeng(Star):
         self.last_ai_check = now
 
         try:
-            user_msg = event.message_obj.message
+            user_msg = self._get_message_text(event)
             if not user_msg:
                 return
             if len(user_msg) > 200:
@@ -158,11 +165,15 @@ class RandomGeng(Star):
 
     async def _fetch_geng(self) -> str:
         try:
-            async with httpx.AsyncClient(verify=False, timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(self.geng_api)
+                resp.raise_for_status()
                 data = resp.json()
-            if data.get("code") == 200 and data.get("data"):
-                return data["data"].get("barrage", "")
+            if isinstance(data, dict) and data.get("code") == 200:
+                payload = data.get("data")
+                if isinstance(payload, dict):
+                    barrage = payload.get("barrage", "")
+                    return barrage if isinstance(barrage, str) else ""
         except Exception as e:
             logger.error(f"获取烂梗失败: {e}")
         return ""
@@ -185,7 +196,7 @@ class RandomGeng(Star):
             if hasattr(provider, 'text_chat'):
                 resp = await asyncio.wait_for(provider.text_chat(prompt), timeout=10)
                 text = self._extract_text(resp)
-                return "YES" in text.strip().upper() if text else False
+                return text.strip().upper() == "YES" if text else False
         except Exception as e:
             logger.warning(f"[烂梗AI] 失败: {e}")
         return False
@@ -213,23 +224,38 @@ class RandomGeng(Star):
 
     def _get_selected_provider(self):
         try:
-            provider_id = self.config.get("ai_provider_id", "").strip()
+            provider_id = self.config.get("ai_provider_id", "")
+            if not isinstance(provider_id, str):
+                return None
+            provider_id = provider_id.strip()
             if not provider_id:
                 return None
             providers = self.context.get_all_providers()
-            search = provider_id.split('/')[-1] if '/' in provider_id else provider_id
             for p in providers:
-                cls = p.__class__.__name__
-                name = getattr(p, 'name', '') or ''
-                model = getattr(p, 'model_name', '') or getattr(p, 'model', '') or ''
-                ptype = getattr(p, 'type', '') or ''
-                for v in [cls, name, model, ptype]:
-                    if search.lower() in v.lower():
-                        return p
+                meta = p.meta()
+                if getattr(meta, "id", None) == provider_id:
+                    return p
             return None
         except Exception as e:
             logger.error(f"获取提供商失败: {e}")
             return None
+
+    def _get_message_text(self, event: AstrMessageEvent) -> str:
+        """Return message text across AstrBot 4.x event representations."""
+        message_obj = getattr(event, "message_obj", None)
+        for source in (event, message_obj):
+            value = getattr(source, "message_str", None) if source is not None else None
+            if isinstance(value, str) and value:
+                return value
+
+        chain = getattr(message_obj, "message", None) if message_obj is not None else None
+        if isinstance(chain, (list, tuple)):
+            return "".join(
+                component.text
+                for component in chain
+                if isinstance(getattr(component, "text", None), str)
+            )
+        return ""
 
     def _get_provider_display_name(self, provider_id: str) -> str:
         p = self._get_selected_provider()
@@ -241,3 +267,4 @@ class RandomGeng(Star):
 
     async def terminate(self):
         pass
+
