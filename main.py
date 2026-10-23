@@ -11,7 +11,7 @@ class RandomGeng(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
-        self.geng_api = "https://hguofichp.cn:10086/machine/getRandOne"
+        self.geng_api = "https://api.hguofichp.cn/machine/getRandOne"
         self.last_ai_check = 0
 
     # ========== /烂梗 (斜杠命令) ==========
@@ -63,8 +63,8 @@ class RandomGeng(Star):
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(
-                    "https://hguofichp.cn:10086/machine/sortAllBarrage",
-                    params={"pageNum": 1, "pageSize": 5}
+                    "https://api.hguofichp.cn/machine/sortAllBarrage",
+                    params={"pageNum": 1, "pageSize": 5, "tags": ""}
                 )
                 resp.raise_for_status()
                 data = resp.json()

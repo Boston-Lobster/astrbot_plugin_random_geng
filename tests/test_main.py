@@ -242,6 +242,33 @@ class PluginTests(unittest.TestCase):
             self.assertEqual(results[0].text, "1. 第一条\n2. 第二条")
             self.assertTrue(FakeAsyncClient.instances[-1].response.status_checked)
 
+    def test_hot_list_sends_required_empty_tags_to_current_api(self):
+        FakeAsyncClient.responses.append(
+            FakeResponse({"code": 200, "data": {"list": [{"barrage": "第一条"}]}})
+        )
+        results = self.collect(self.make_plugin().hot_geng(Event("/烂梗榜")))
+        url, kwargs = FakeAsyncClient.instances[-1].requests[0]
+        self.assertEqual(url, "https://api.hguofichp.cn/machine/sortAllBarrage")
+        self.assertEqual(kwargs["params"], {"pageNum": 1, "pageSize": 5, "tags": ""})
+        self.assertEqual(results[0].text, "1. 第一条")
+
+    def test_fetch_geng_uses_current_official_api(self):
+        FakeAsyncClient.responses.append(
+            FakeResponse({"code": 200, "data": {"barrage": "梗"}})
+        )
+        self.assertEqual(asyncio.run(self.make_plugin()._fetch_geng()), "梗")
+        self.assertEqual(
+            FakeAsyncClient.instances[-1].requests[0][0],
+            "https://api.hguofichp.cn/machine/getRandOne",
+        )
+
+    def test_hot_list_reports_business_failure_even_with_http_success(self):
+        response = FakeResponse({"code": 500, "msg": None})
+        FakeAsyncClient.responses.append(response)
+        results = self.collect(self.make_plugin().hot_geng(Event("/烂梗榜")))
+        self.assertTrue(response.status_checked)
+        self.assertEqual(results[0].text, "热门烂梗获取失败")
+
     def test_hot_list_handles_malformed_payload(self):
         FakeAsyncClient.responses.append(FakeResponse({"code": 200, "data": "bad"}))
         plugin = self.make_plugin()

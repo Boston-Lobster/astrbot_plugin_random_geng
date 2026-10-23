@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1
+
+- Fix leaderboard requests returning business code 500 by explicitly sending the empty `tags` parameter for the unfiltered top-five list.
+- Use the current official API host `https://api.hguofichp.cn` for random and leaderboard requests.
+- Add regression coverage for the API request contract and business-level failures.
+
 ## 1.5.0
 
 - Read plain text from AstrBot's message text fields instead of treating the message component chain as a string.
